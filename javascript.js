@@ -1,17 +1,28 @@
 const boardSize = 4;
 let board = [];
 let score = 0;
+let bestScore = 0;
 
 const boardElement = document.getElementById('board');
 const scoreElement = document.getElementById('score');
+const bestElement = document.getElementById('best');
 const restartButton = document.getElementById('restart');
 
-// Initialize board
-function initBoard() {
+// Initialize board with option for custom state
+function initBoard(customState = null) {
     board = Array.from({ length: boardSize }, () => Array(boardSize).fill(0));
-    addRandomTile();
-    addRandomTile();
+    if (customState) {
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                board[r][c] = customState[r][c] || 0;
+            }
+        }
+    } else {
+        addRandomTile();
+        addRandomTile();
+    }
     score = 0;
+    updateBestScore();
     updateBoard();
 }
 
@@ -42,7 +53,7 @@ function updateBoard() {
             if (typeof board[r][c] === 'object') {
                 tileValue = board[r][c].value;
                 isNew = board[r][c].isNew;
-                board[r][c] = tileValue;
+                board[r][c] = tileValue; // Convert back to number after animation
             } else {
                 tileValue = board[r][c];
             }
@@ -54,13 +65,16 @@ function updateBoard() {
 
             if (isNew) {
                 tileDiv.classList.add('new');
-                tileDiv.addEventListener('animationend', () => tileDiv.classList.remove('new'));
+                tileDiv.addEventListener('animationend', () => {
+                    tileDiv.classList.remove('new');
+                }, { once: true });
             }
 
             boardElement.appendChild(tileDiv);
         }
     }
     scoreElement.textContent = 'Score: ' + score;
+    bestElement.textContent = 'Best: ' + bestScore;
     checkGameOver();
 }
 
@@ -68,7 +82,7 @@ function updateBoard() {
 function slide(row) {
     let arr = row.filter(val => val !== 0);
     for (let i = 0; i < arr.length - 1; i++) {
-        if (arr[i] === arr[i + 1]) {
+        if (arr[i] === arr[i + 1] && arr[i] !== 0) {
             arr[i] *= 2;
             score += arr[i];
             arr[i + 1] = 0;
@@ -136,7 +150,13 @@ function moveDown() {
 function afterMove() {
     addRandomTile();
     updateBoard();
+    updateBestScore();
     checkWin();
+}
+
+// Update best score
+function updateBestScore() {
+    bestScore = Math.max(bestScore, score);
 }
 
 // Win detection
@@ -165,16 +185,25 @@ function checkGameOver() {
 
 // Keyboard controls
 document.addEventListener('keydown', (e) => {
-    switch (e.key) {
-        case 'ArrowLeft': moveLeft(); break;
-        case 'ArrowRight': moveRight(); break;
-        case 'ArrowUp': moveUp(); break;
-        case 'ArrowDown': moveDown(); break;
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        e.preventDefault(); // Prevent scrolling
+        switch (e.key) {
+            case 'ArrowLeft': moveLeft(); break;
+            case 'ArrowRight': moveRight(); break;
+            case 'ArrowUp': moveUp(); break;
+            case 'ArrowDown': moveDown(); break;
+        }
     }
 });
 
 // Restart game
-restartButton.addEventListener('click', initBoard);
+restartButton.addEventListener('click', () => initBoard());
 
-// Start game
-initBoard();
+// Start game with first image state as an option
+const firstImageState = [
+    [2, 2, 16, 8],
+    ['', 64, '', ''],
+    ['', '', 4, 2],
+    ['', '', '', '']
+];
+initBoard(firstImageState); // Use this to match the first image
